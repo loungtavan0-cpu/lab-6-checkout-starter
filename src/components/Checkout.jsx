@@ -14,6 +14,50 @@ const emptyForm = {
   agree:false
 }
 
+function validate(data) {
+  const errors = {};
+
+  if (data.fullName.trim().length < 2) {
+    errors.fullName = "ກະລຸນາປ້ອນຊື່ ແລະ ນາມສະກຸນ (ຢ່າງນ້ອຍ 2 ໂຕອັກສອນ)";
+  }
+
+  // if (data.phone.trim().length < 8 || data.phone.trim().length > 11) {
+  //   errors.phone = "ກະລຸນາປ້ອນເບີໂທ (ຢ່າງນ້ອຍ 8 - 11 ໂຕອັກສອນ)";
+  // }
+
+  if (!/^\d{8,11}$/.test(data.phone.trim())) {
+    errors.phone = "ກະລຸນາປ້ອນເບີໂທ (ຢ່າງນ້ອຍ 8 - 11 ໂຕອັກສອນ)";
+  }
+
+  if (data.email && !/^\S+@\S+\.\S+$/.test(data.email.trim())) {
+    errors.email = " ຮູບແບບອີເມວບໍ່ຖືກຕ້ອງ";
+  }
+
+  if (data.province.trim().length < 1) {
+    errors.province = "ກະລຸນາເລືອກແຂວງ";
+  }
+
+  // if (data.province === "") {
+  //   errors.province = "ກະລຸນາເລືອກແຂວງ";
+  // }
+  
+  // if (!data.province) {
+  //   errors.province = "ກະລຸນາເລືອກແຂວງ";
+  // }
+
+
+  if (data.agree === false) {
+    errors.agree = "ກະລຸນາຢືນຢັນຂໍ້ມູນ";
+  }
+
+
+
+  return errors;
+
+  // console.log("DATA>>>", data);
+
+}
+
 function Checkout({ cart, total, onBack, onPlaceOrder }) {
   // ─────────────────────────────────────────────────────────────
   // CHECKPOINT 1 — controlled inputs
@@ -23,6 +67,9 @@ function Checkout({ cart, total, onBack, onPlaceOrder }) {
   //
 
 const [formData, setFormData] = useState(emptyForm);
+const [submitted, setSubmitted] = useState(false);
+
+
 function handleChange(e) {
   const{value,name,type,checked} = e.target;
   setFormData(previousValue => ({
@@ -48,9 +95,18 @@ function handleChange(e) {
   function handleSubmit(e) {
     e.preventDefault();
     // TODO (Checkpoint 3 and 4)
+    setSubmitted(true);
+
+    console.log("SUBMITTED FORM DATA>>>", formData);
+
+    if (Object.keys(validate(formData)).length === 0) {
+      onPlaceOrder(formData);
+    }
+    
   }
 
   // TODO (Checkpoint 2): make this depend on the chosen delivery option
+  const errors = submitted ? validate(formData) : {};
   const deliveryFee = 0;
   const grandTotal = total + deliveryFee;
 
@@ -66,7 +122,13 @@ function handleChange(e) {
           <div className="field">
             <label htmlFor="fullName">ຊື່ ແລະ ນາມສະກຸນ *</label>
             {/* This input is NOT controlled yet — React doesn't know what's typed in it */}
-            <input id="fullName" name="fullName" type="text"value={formData.fullName} onChange={handleChange} />
+            <input id="fullName" name="fullName" type="text"
+            value={formData.fullName} 
+            onChange={handleChange}
+            aria-invalid={Boolean(errors.fullName)} />
+
+            {errors.fullName && <p className="error">{errors.fullName} </p>}
+
           </div>
 
           <div className="field">
@@ -74,7 +136,11 @@ function handleChange(e) {
 
             <input id="phone" name="phone" type="tel"
             value={formData.phone}
-            onChange={handleChange} />
+            onChange={handleChange}
+            aria-invalid={Boolean(errors.phone)} />
+
+            {errors.phone && <p className="error">{errors.phone} </p>}
+
           </div>
 
           {/* Implement with Codex */}
@@ -83,7 +149,11 @@ function handleChange(e) {
             <label htmlFor="email">ອີເມວ <span className="hint">(ບໍ່ບັງຄັບ)</span></label>
             <input id="email" name="email" type="email"
             value={formData.email}
-            onChange={handleChange} />
+            onChange={handleChange} 
+            aria-invalid={Boolean(errors.email)} />
+
+            {errors.email && <p className="error">{errors.email} </p>}
+
           </div>
 
           <div className="field">
@@ -93,6 +163,7 @@ function handleChange(e) {
               name="province" 
               value={formData.province} 
               onChange={handleChange}
+              aria-invalid={Boolean(errors.province)}
             >
               <option value="">---ເລືອກແຂວງ---</option>
               {/* <option value="vte">ນະຄອນຫຼວງ</option>
@@ -105,7 +176,8 @@ function handleChange(e) {
               ))}
 
             </select>
-           
+              
+              {errors.province && <p className="error">{errors.province} </p>}
           </div>
 
           <fieldset className="field">
@@ -139,7 +211,7 @@ function handleChange(e) {
 
             <input id="address" name="address" type="text"
             value={formData.address}
-            maxLength={10}
+            
             onChange={handleChange} />
           </div>
           )}
@@ -161,13 +233,14 @@ function handleChange(e) {
           <div className="field">
             <label htmlFor="notes">
               ໝາຍເຫດ *
-              <span className="hint">({formData.notes.length}/120)</span>
+              <span className="hint">({formData.notes.length} / 120)</span>
               </label>
 
             <textarea
               name="notes"
               id="notes"
               rows={3}
+              maxLength={120}
               value={formData.notes}
               onChange={handleChange}
               >
@@ -183,14 +256,22 @@ function handleChange(e) {
                 type="checkbox"
                 checked={formData.agree}
                 onChange={handleChange}
+                aria-invalid={Boolean(errors.agree)}
               />  
 
               ຂ້ອຍຢືນຢັນວ່າຂໍ້ມູນຖືກຕ້ອງ *
               </label>
+
+              {errors.agree && <p className="error">{errors.agree} </p>}
+
           </div>
 
 
-          <button type="submit" className="submit-btn">ຢືນຢັນການສັ່ງຊື້</button>
+          <button type="submit" className="submit-btn" >ຢືນຢັນການສັ່ງຊື້</button>
+          {submitted && Object.keys(errors).length > 0 && (
+            <p className="error ">ມີ {Object.keys(errors).length} ຊ່ອງທີ່ຕ້ອງການແກ້ກ່ອນສັ່ງຊື້</p>
+          )}
+
         </form>
 
         <aside className="recap">
